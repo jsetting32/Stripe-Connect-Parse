@@ -128,4 +128,101 @@ So heres what I have in my handleURL method in AppDelegate:
 
 So here we are basically parsing the response. We first check if the response contains 'error', if it does show an alert. Else parse the tokens that we need and save it to Parse, then show an alert saying success. Once this is done, we have successfuly setup the user to become a merchant and receive transactions.
 
+As for the Cloud Code, please see the source. It is very descriptive, but is meant for the app I implemented. Although, you can just change the variables the way you need to. 
 
+Here are the methods for my utility class to, make purchases, refunds, save your card information, etc.
+
+```Objective-C
+#pragma mark Save Card Information
++ (void)saveCardInformationForUser:(PFUser *)user withToken:(STPToken *)token block:(void (^)(BOOL, NSError *))completionBlock
+{
+    if (utilityDebug) NSLog(@"%s", __PRETTY_FUNCTION__);
+
+    [PFCloud callFunctionInBackground:kPHCloudFunctionSaveCardInformationKey withParameters:params block:^(id object, NSError *error) {
+        if (!error) {
+            if (completionBlock) {
+                completionBlock(YES, nil);
+            }
+            NSDictionary *obj = (NSDictionary *)object;
+            [user setObject:[obj objectForKey:@"default_source"] forKey:kPHUserStripeCardIdKey];
+            [user setObject:[obj objectForKey:@"id"] forKey:kPHUserStripeCustomerIdKey];
+            [user saveEventually];
+            return;
+        }
+        
+        if (completionBlock) {
+            completionBlock(NO, error);
+        }
+        
+    }];
+}
+
+#pragma mark Retrieve Card Information
++ (void)retrieveCardInformationForUser:(PFUser *)user block:(void (^)(NSDictionary * cardInformation, NSError * error))completionBlock
+{
+    [PFCloud callFunctionInBackground:kPHCloudFunctionRetrieveCardInformationKey withParameters:@{} block:^(id object, NSError *error) {
+        if (!error) {
+            
+            NSDictionary *customer = (NSDictionary *)object;
+            NSDictionary *cardInfo = [[[customer objectForKey:@"sources"] objectForKey:@"data"] firstObject];
+            NSString *type = [[cardInfo objectForKey:@"brand"] lowercaseString];
+            NSString *expYear = [cardInfo objectForKey:@"exp_year"];
+            NSString *expMonth = [cardInfo objectForKey:@"exp_month"];
+            NSString *cardNumber = [NSString stringWithFormat:@"**** **** **** %@", [cardInfo objectForKey:@"last4"]];
+            NSDictionary *cardInfoDict = @{@"type":[UIImage imageNamed:type],
+                                           @"exp_month": expMonth,
+                                           @"exp_year": expYear,
+                                           @"card":cardNumber};
+            if (completionBlock) {
+                completionBlock(cardInfoDict, nil);
+            }
+            return;
+        }
+        
+        if (completionBlock) {
+            completionBlock(nil, error);
+        }
+        
+    }];
+}
+
+#pragma mark Charge Card
++ (void)chargeCardForUser:(PFUser *)user withEvent:(PFObject *)event numberOfTickets:(NSNumber *)numberOfTickets block:(void (^)(BOOL succeeded, NSError *error))completionBlock
+{
+    NSDictionary *params = @{@"eventObject" : [event objectId], @"numberOfTickets" : numberOfTickets};
+    [PFCloud callFunctionInBackground:kPHCloudFunctionChargeCardKey withParameters:params block:^(id object, NSError *error) {
+        if (!error) {
+            if (completionBlock) {
+                completionBlock(YES, error);
+            }
+            return;
+        }
+        
+        if (completionBlock) {
+            completionBlock(NO, error);
+        }
+        
+    }];
+}
+
+#pragma mark Create Transaction
++ (void)refundTransactionForUser:(PFUser *)user forEvent:(PFObject *)event numberOfTickets:(NSNumber *)numberOfTickets block:(void (^)(PFObject * transaction, NSError *error))completionBlock
+{
+    NSDictionary *params = @{@"eventObject" : [event objectId], @"numberOfTickets" : numberOfTickets};
+    [PFCloud callFunctionInBackground:kPHCloudFunctionRefundChargeKey withParameters:params block:^(id object, NSError *error) {
+        if (!error) {
+            if (completionBlock) {
+                completionBlock((PFObject *)object, nil);
+            }
+            return;
+        }
+        
+        if (completionBlock) {
+            completionBlock(nil, error);
+        }
+        
+    }];
+}
+```
+
+If you have any issues, PLEASE send me an email or file for an issue! Thank you and happy coding!
