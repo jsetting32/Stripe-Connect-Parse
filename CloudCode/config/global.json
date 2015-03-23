@@ -1,0 +1,14 @@
+{
+    "applications": {
+        "HotSpot-Development": {
+            "applicationId": "", 
+            "masterKey": ""
+        }, 
+        "_default": {
+            "link": "HotSpot-Development"
+        }
+    }, 
+    "global": {
+        "parseVersion": "1.3.5"
+    }
+}
