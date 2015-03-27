@@ -225,4 +225,9 @@ Here are the methods for my utility class to, make purchases, refunds, save your
 }
 ```
 
+Note:
+Once you deploy to Production, you need to setup your web app to support HTTPS/SSL. This needs to be accomplished since the Production Redirect URI for Stripe requires a HTTPS redirect URI.
+
+Check out Django-SSLServer or Django-sslify to accomplish this
+
 If you have any issues, PLEASE send me an email or file for an issue! Thank you and happy coding!
